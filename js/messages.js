@@ -14,12 +14,12 @@ MessageList.prototype.poll = function() {
 
 MessageList.prototype.send = function(msg) {
 	this.scrollToBottom();
-	return this.channel.send(msg);
+	return this.channel.send(cleanup(msg));
 }
 
 MessageList.prototype.tell = function(user,to_user,msg) {
 	this.scrollToBottom();
-	return user.tell(to_user,msg);
+	return user.tell(to_user,cleanup(msg));
 }
 MessageList.prototype.addMention=function() {
 	this.unread++;
@@ -149,4 +149,34 @@ MessageList.prototype.pgDn = function() {
 
 MessageList.prototype.scrollToBottom = function() {
 	this.ul.scrollTop(1e10); // just scroll down a lot
+}
+
+
+
+function handleEscapes(s) {
+	return unescape(
+		s
+			.replace(/%/g,"%25")    // existing percents
+			.replace(/\\\\/g,"%5C") // double backslash
+			.replace(/\\b/g,"%08")  // named replacements
+			.replace(/\\f/g,"%0C")
+			.replace(/\\n/g,"%0A")
+			.replace(/\\r/g,"%0D")
+			.replace(/\\t/g,"%09")
+			.replace(/\\'/g,"%27")  //')//fix syntax highlighting
+			.replace(/\\"/g,"%22")  //")//fix syntax highlighting
+			.replace(/\\([1-7][0-7]{0,2}|[0-7]{2,3})/g,function(a,b){return '%'+('0'+parseInt(b,8).toString(16).toUpperCase()).slice(-2)}) // octal
+			.replace(/\\0/g,"%00") // null char, which isn't actually an octal because $reasons
+			.replace(/\\x/g,"%")   // \x literals
+			.replace(/\\u([0-9a-fA-F]{4})/g,"%u$1")  // \u literals	);
+}
+function modChatHook(m) {
+	// Modders: feel free to replace this function to do whatever special processing you want before things get sent to the server. Custom color code insertion, etc.
+	return m;
+}
+// All messages sent get passed through this
+function cleanup(m) {
+	m=handleEscapes(m);
+	m=modChatHook(m);
+	return m
 }
